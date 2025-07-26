@@ -71,7 +71,7 @@ responseType: "token"
 ```
 ...
 responseType: "code"
-pkceEnable: true
+pkceEnabled: true
 ...
 ```
 
