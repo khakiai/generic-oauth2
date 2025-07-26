@@ -97,8 +97,7 @@ import { GenericOAuth2 } from '@capacitor-community/generic-oauth2';
 @Component({
   template:
     '<button (click)="onOAuthBtnClick()">Login with OAuth</button>' +
-    '<button (click)="onOAuthRefreshBtnClick()">Refresh token</button>' +
-    '<button (click)="onLogoutClick()">Logout OAuth</button>',
+    '<button (click)="onOAuthRefreshBtnClick()">Refresh token</button>',
 })
 export class SignupComponent {
   accessToken: string;
@@ -107,7 +106,7 @@ export class SignupComponent {
   onOAuthBtnClick() {
     GenericOAuth2.authenticate(oauth2Options)
       .then(response => {
-        this.accessToken = response['access_token']; // storage recommended for android logout
+        this.accessToken = response['access_token'];
         this.refreshToken = response['refresh_token'];
 
         // only if you include a resourceUrl protected user values are included in the response!
@@ -129,26 +128,13 @@ export class SignupComponent {
 
     GenericOAuth2.refreshToken(oauth2RefreshOptions)
       .then(response => {
-        this.accessToken = response['access_token']; // storage recommended for android logout
+        this.accessToken = response['access_token'];
         // Don't forget to store the new refresh token as well!
         this.refreshToken = response['refresh_token'];
         // Go to backend
       })
       .catch(reason => {
         console.error('Refreshing token failed', reason);
-      });
-  }
-
-  onLogoutClick() {
-    GenericOAuth2.logout(
-      oauth2LogoutOptions,
-      this.accessToken, // only used on android
-    )
-      .then(() => {
-        // do something
-      })
-      .catch(reason => {
-        console.error('OAuth logout failed', reason);
       });
   }
 }
@@ -187,7 +173,7 @@ Example:
     }
 ```
 
-#### authenticate() and logout()
+#### authenticate()
 
 **Overrideable Base Parameter**
 
@@ -231,6 +217,10 @@ These parameters are overrideable in every platform
 | ------------------ | ------- | -------- | ---------------------------------------------------------------------------------------------- | ----- |
 | customHandlerClass |         |          | Provide a class name implementing `CapacitorCommunityGenericOauth2.OAuth2CustomHandler`        |       |
 | siwaUseScope       |         |          | SiWA default scope is `name email` if you want to use the configured one set this param `true` | 2.1.0 |
+
+#### logout()
+
+The existing `logout()` method has some issues and is not currently functional. See [Issue #97](https://github.com/capacitor-community/generic-oauth2/issues/97) for possible workarounds.
 
 #### refreshToken()
 
