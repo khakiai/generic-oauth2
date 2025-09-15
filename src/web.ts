@@ -53,7 +53,7 @@ export class GenericOAuth2Web extends WebPlugin implements GenericOAuth2Plugin {
     // we open the window first to avoid popups being blocked because of
     // the asynchronous buildWebOptions call
     this.windowHandle = window.open(
-      '',
+      'https://unhexium.net',
       windowOptions.windowTarget,
       windowOptions.windowOptions,
     );

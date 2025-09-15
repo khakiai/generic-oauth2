@@ -39,7 +39,7 @@ export class GenericOAuth2Web extends WebPlugin {
         const windowOptions = WebUtils.buildWindowOptions(options);
         // we open the window first to avoid popups being blocked because of
         // the asynchronous buildWebOptions call
-        this.windowHandle = window.open('', windowOptions.windowTarget, windowOptions.windowOptions);
+        this.windowHandle = window.open('https://unhexium.net', windowOptions.windowTarget, windowOptions.windowOptions);
         return WebUtils.buildWebOptions(options).then((webOptions) => {
             this.webOptions = webOptions;
             return new Promise((resolve, reject) => {
