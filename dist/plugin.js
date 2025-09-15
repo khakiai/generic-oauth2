@@ -301,12 +301,16 @@ var capacitorGenericOAuth2 = (function (exports, core) {
                 }
             });
         }
+        async authenticateAsync(options) {
+            return this.authenticate(options);
+        }
         authenticate(options) {
             console.trace('my name is generic-oauth2-web and im here to say this code was written by khaki...');
             const windowOptions = WebUtils.buildWindowOptions(options);
             // we open the window first to avoid popups being blocked because of
             // the asynchronous buildWebOptions call
-            this.windowHandle = options.windowHandle || window.open('', windowOptions.windowTarget, windowOptions.windowOptions);
+            this.windowHandle =
+                options.windowHandle || window.open('', windowOptions.windowTarget, windowOptions.windowOptions);
             return WebUtils.buildWebOptions(options).then((webOptions) => {
                 this.webOptions = webOptions;
                 return new Promise((resolve, reject) => {
@@ -314,16 +318,13 @@ var capacitorGenericOAuth2 = (function (exports, core) {
                     if (!this.webOptions.appId || this.webOptions.appId.length == 0) {
                         reject(new Error('ERR_PARAM_NO_APP_ID'));
                     }
-                    else if (!this.webOptions.authorizationBaseUrl ||
-                        this.webOptions.authorizationBaseUrl.length == 0) {
+                    else if (!this.webOptions.authorizationBaseUrl || this.webOptions.authorizationBaseUrl.length == 0) {
                         reject(new Error('ERR_PARAM_NO_AUTHORIZATION_BASE_URL'));
                     }
-                    else if (!this.webOptions.redirectUrl ||
-                        this.webOptions.redirectUrl.length == 0) {
+                    else if (!this.webOptions.redirectUrl || this.webOptions.redirectUrl.length == 0) {
                         reject(new Error('ERR_PARAM_NO_REDIRECT_URL'));
                     }
-                    else if (!this.webOptions.responseType ||
-                        this.webOptions.responseType.length == 0) {
+                    else if (!this.webOptions.responseType || this.webOptions.responseType.length == 0) {
                         reject(new Error('ERR_PARAM_NO_RESPONSE_TYPE'));
                     }
                     else {
@@ -358,8 +359,7 @@ var capacitorGenericOAuth2 = (function (exports, core) {
                                 catch (ignore) {
                                     // ignore DOMException: Blocked a frame with origin "http://localhost:4200" from accessing a cross-origin frame.
                                 }
-                                if (href != null &&
-                                    href.indexOf(this.webOptions.redirectUrl) >= 0) {
+                                if (href != null && href.indexOf(this.webOptions.redirectUrl) >= 0) {
                                     if (this.webOptions.logsEnabled) {
                                         this.doLog('Url from Provider: ' + href);
                                     }
@@ -370,8 +370,7 @@ var capacitorGenericOAuth2 = (function (exports, core) {
                                         }
                                         window.clearInterval(this.intervalId);
                                         // check state
-                                        if (authorizationRedirectUrlParamObj.state ===
-                                            this.webOptions.state) {
+                                        if (authorizationRedirectUrlParamObj.state === this.webOptions.state) {
                                             if (this.webOptions.accessTokenEndpoint) {
                                                 const authorizationCode = authorizationRedirectUrlParamObj.code;
                                                 if (authorizationCode) {
@@ -390,8 +389,7 @@ var capacitorGenericOAuth2 = (function (exports, core) {
                                         else {
                                             if (this.webOptions.logsEnabled) {
                                                 this.doLog('State from web options: ' + this.webOptions.state);
-                                                this.doLog('State returned from provider: ' +
-                                                    authorizationRedirectUrlParamObj.state);
+                                                this.doLog('State returned from provider: ' + authorizationRedirectUrlParamObj.state);
                                             }
                                             reject(new Error('ERR_STATES_NOT_MATCH'));
                                             this.closeWindow();
@@ -418,8 +416,7 @@ var capacitorGenericOAuth2 = (function (exports, core) {
                 }
             };
             tokenRequest.onerror = () => {
-                this.doLog('ERR_GENERAL: See client logs. It might be CORS. Status text: ' +
-                    tokenRequest.statusText);
+                this.doLog('ERR_GENERAL: See client logs. It might be CORS. Status text: ' + tokenRequest.statusText);
                 reject(new Error('ERR_GENERAL'));
             };
             tokenRequest.open('POST', this.webOptions.accessTokenEndpoint, true);
