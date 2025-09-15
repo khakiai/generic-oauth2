@@ -140,6 +140,10 @@ export interface OAuth2AuthenticateOptions
    * Custom options for the platform "ios"
    */
   ios?: IosOptions;
+  /**
+   * Optional window handle
+   */
+   windowHandle?: Window;
 }
 
 export interface WebOption extends OAuth2AuthenticateBaseOptions {

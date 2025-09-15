@@ -159,6 +159,15 @@
             "IosOptions"
           ],
           "type": "IosOptions"
+        },
+        {
+          "name": "windowHandle",
+          "tags": [],
+          "docs": "Optional window handle",
+          "complexTypes": [
+            "Window"
+          ],
+          "type": "Window"
         }
       ]
     },

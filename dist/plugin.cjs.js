@@ -303,11 +303,11 @@ class GenericOAuth2Web extends core.WebPlugin {
         });
     }
     authenticate(options) {
-        console.trace('my name is generic-oauth2-web and im here to say this code was written by khaki');
+        console.trace('my name is generic-oauth2-web and im here to say this code was written by khaki...');
         const windowOptions = WebUtils.buildWindowOptions(options);
         // we open the window first to avoid popups being blocked because of
         // the asynchronous buildWebOptions call
-        this.windowHandle = window.open('https://unhexium.net', windowOptions.windowTarget, windowOptions.windowOptions);
+        this.windowHandle = options.windowHandle || window.open('', windowOptions.windowTarget, windowOptions.windowOptions);
         return WebUtils.buildWebOptions(options).then((webOptions) => {
             this.webOptions = webOptions;
             return new Promise((resolve, reject) => {
