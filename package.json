@@ -1,5 +1,5 @@
 {
-  "name": "@capacitor-community/generic-oauth2",
+  "name": "@khaki/generic-oauth2",
   "version": "7.0.0",
   "description": "Capacitor OAuth 2 client plugin",
   "main": "dist/plugin.cjs.js",

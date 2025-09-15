@@ -16,6 +16,8 @@
 
 ## Introduction
 
+This is forked to address https://github.com/capacitor-community/generic-oauth2/issues/216.
+
 This is a **generic OAuth 2 client** plugin. It lets you configure the oauth parameters yourself instead of using SDKs.
 Therefore, it is usable with various providers. See [identity providers](#list-of-providers) the community has already
 used this plugin with.
