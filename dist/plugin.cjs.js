@@ -303,6 +303,7 @@ class GenericOAuth2Web extends core.WebPlugin {
         });
     }
     authenticate(options) {
+        console.log('my name is generic-oauth2-web and im here to say this code was written by khaki');
         const windowOptions = WebUtils.buildWindowOptions(options);
         // we open the window first to avoid popups being blocked because of
         // the asynchronous buildWebOptions call
