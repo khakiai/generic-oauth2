@@ -34,7 +34,7 @@ export class GenericOAuth2Web extends WebPlugin {
             }
         });
     }
-    authenticate(options) {
+    async authenticate(options) {
         return this.syncAuthenticate(options);
     }
     syncAuthenticate(options) {

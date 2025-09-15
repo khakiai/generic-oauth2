@@ -302,7 +302,7 @@ class GenericOAuth2Web extends core.WebPlugin {
             }
         });
     }
-    authenticate(options) {
+    async authenticate(options) {
         return this.syncAuthenticate(options);
     }
     syncAuthenticate(options) {

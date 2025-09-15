@@ -301,7 +301,7 @@ var capacitorGenericOAuth2 = (function (exports, core) {
                 }
             });
         }
-        authenticate(options) {
+        async authenticate(options) {
             return this.syncAuthenticate(options);
         }
         syncAuthenticate(options) {
