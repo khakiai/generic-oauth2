@@ -44,7 +44,7 @@ export class GenericOAuth2Web extends WebPlugin implements GenericOAuth2Plugin {
     });
   }
 
-  authenticate(options: OAuth2AuthenticateOptions): Promise<any> {
+  async authenticate(options: OAuth2AuthenticateOptions): Promise<any> {
     return this.syncAuthenticate(options);
   }
 
