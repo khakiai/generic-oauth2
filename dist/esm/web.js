@@ -34,10 +34,10 @@ export class GenericOAuth2Web extends WebPlugin {
             }
         });
     }
-    async authenticateAsync(options) {
-        return this.authenticate(options);
-    }
     authenticate(options) {
+        return this.syncAuthenticate(options);
+    }
+    syncAuthenticate(options) {
         console.trace('my name is generic-oauth2-web and im here to say this code was written by khaki...');
         const windowOptions = WebUtils.buildWindowOptions(options);
         // we open the window first to avoid popups being blocked because of

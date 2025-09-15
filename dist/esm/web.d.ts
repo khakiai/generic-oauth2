@@ -12,8 +12,8 @@ export declare class GenericOAuth2Web extends WebPlugin implements GenericOAuth2
      */
     refreshToken(_options: OAuth2RefreshTokenOptions): Promise<any>;
     redirectFlowCodeListener(options: ImplicitFlowRedirectOptions): Promise<any>;
-    authenticateAsync(options: OAuth2AuthenticateOptions): Promise<any>;
     authenticate(options: OAuth2AuthenticateOptions): Promise<any>;
+    syncAuthenticate(options: OAuth2AuthenticateOptions): Promise<any>;
     private readonly MSG_RETURNED_TO_JS;
     private getAccessToken;
     private requestResource;
