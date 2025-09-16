@@ -320,6 +320,13 @@ public class GenericOAuth2Plugin: CAPPlugin {
     }
 
     /*
+     * Plugin function for redirect flow code listener (web-only, stub implementation)
+     */
+    @objc func redirectFlowCodeListener(_ call: CAPPluginCall) {
+        call.reject("ERR_PLATFORM_NOT_SUPPORTED", "redirectFlowCodeListener is only supported on web platform")
+    }
+
+    /*
      * Plugin function to refresh tokens
      */
     @objc func logout(_ call: CAPPluginCall) {
