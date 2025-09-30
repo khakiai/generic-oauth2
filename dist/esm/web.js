@@ -38,7 +38,6 @@ export class GenericOAuth2Web extends WebPlugin {
         return this.syncAuthenticate(options);
     }
     syncAuthenticate(options) {
-        console.trace('my name is generic-oauth2-web and im here to say this code was written by khaki...');
         const windowOptions = WebUtils.buildWindowOptions(options);
         // we open the window first to avoid popups being blocked because of
         // the asynchronous buildWebOptions call
@@ -79,6 +78,7 @@ export class GenericOAuth2Web extends WebPlugin {
                             this.closeWindow();
                         }
                         else if (((_a = this.windowHandle) === null || _a === void 0 ? void 0 : _a.closed) && !this.windowClosedByPlugin) {
+                            console.log('window closed by user', this.windowHandle, this.windowClosedByPlugin);
                             window.clearInterval(this.intervalId);
                             reject(new Error('USER_CANCELLED'));
                         }

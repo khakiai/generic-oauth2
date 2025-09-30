@@ -85,6 +85,7 @@ export class GenericOAuth2Web extends WebPlugin implements GenericOAuth2Plugin {
             if (loopCount-- < 0) {
               this.closeWindow();
             } else if (this.windowHandle?.closed && !this.windowClosedByPlugin) {
+              console.log('window closed by user', this.windowHandle, this.windowClosedByPlugin);
               window.clearInterval(this.intervalId);
               reject(new Error('USER_CANCELLED'));
             } else {
