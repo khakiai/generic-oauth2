@@ -9,13 +9,22 @@ import type {
 import type { WebOptions } from './web-utils';
 import { WebUtils } from './web-utils';
 
+type OAuth2Result = {
+  access_token?: string;
+  authorization_response?: Record<string, string>;
+  access_token_response?: Record<string, any>;
+  // If resourceUrl returns a JSON object, its fields may be merged into this object.
+};
+
 export class GenericOAuth2Web extends WebPlugin implements GenericOAuth2Plugin {
-  private webOptions: WebOptions;
-  private windowHandle: Window | null;
-  private intervalId: number;
+  private webOptions!: WebOptions;
+  private windowHandle: Window | null = null;
+  private intervalId: number | null = null;
   private loopCount = 2000;
   private intervalLength = 100;
-  private windowClosedByPlugin: boolean;
+  private windowClosedByPlugin = false;
+
+  private readonly MSG_RETURNED_TO_JS = 'Returned to JS:';
 
   /**
    * Get a new access token using an existing refresh token.
@@ -25,6 +34,103 @@ export class GenericOAuth2Web extends WebPlugin implements GenericOAuth2Plugin {
     return new Promise<any>((_resolve, reject) => {
       reject(new Error('Functionality not implemented for PWAs yet'));
     });
+  }
+
+  /**
+   * New: Pure redirect consumer. No popup/window required.
+   * Call this from your /auth/callback route with the full redirected URL.
+   * Returns the same payload shape produced by requestResource/assignResponses.
+   */
+  async consumeRedirectUrl(
+    redirectedUrl: string,
+    options: OAuth2AuthenticateOptions | WebOptions,
+  ): Promise<OAuth2Result> {
+    const webOptions: WebOptions =
+      (options as any).authorizationBaseUrl && (options as any).redirectUrl
+        ? (options as WebOptions)
+        : await WebUtils.buildWebOptions(options as OAuth2AuthenticateOptions);
+
+    const urlParams = WebUtils.getUrlParams(redirectedUrl);
+    if (!urlParams) {
+      throw new Error('Oauth Parameters where not present in url.');
+    }
+
+    if (webOptions.logsEnabled) {
+      this.doLog('Authorization response (pure):', urlParams);
+    }
+
+    // State check (CSRF)
+    if (urlParams.state !== webOptions.state) {
+      if (webOptions.logsEnabled) {
+        this.doLog('State from web options: ' + webOptions.state);
+        this.doLog('State returned from provider: ' + urlParams.state);
+      }
+      throw new Error('ERR_STATES_NOT_MATCH');
+    }
+
+    // Authorization Code (+PKCE) flow
+    if (webOptions.accessTokenEndpoint) {
+      const authorizationCode = urlParams.code;
+      if (!authorizationCode) throw new Error('ERR_NO_AUTHORIZATION_CODE');
+
+      const form = new URLSearchParams(WebUtils.getTokenEndpointData(webOptions, authorizationCode));
+      const headers: Record<string, string> = {
+        accept: 'application/json',
+        'content-type': 'application/x-www-form-urlencoded',
+      };
+      if (webOptions.sendCacheControlHeader) headers['cache-control'] = 'no-cache';
+
+      let accessTokenResponse: any;
+      try {
+        const resp = await fetch(webOptions.accessTokenEndpoint, {
+          method: 'POST',
+          headers,
+          body: form,
+        });
+        if (!resp.ok) throw new Error(`ERR_GENERAL`);
+        accessTokenResponse = await resp.json();
+        WebUtils.clearCodeVerifier();
+      } catch (_e) {
+        this.doLog('ERR_GENERAL during token exchange');
+        throw new Error('ERR_GENERAL');
+      }
+
+      if (webOptions.logsEnabled) this.doLog('Access token response (pure):', accessTokenResponse);
+
+      if (webOptions.resourceUrl) {
+        const resource = await this.fetchResourcePure(webOptions, accessTokenResponse.access_token);
+        const result: OAuth2Result = {};
+        this.assignResponses(result, accessTokenResponse.access_token, urlParams, accessTokenResponse);
+        Object.assign(result, resource);
+        if (webOptions.logsEnabled) this.doLog(this.MSG_RETURNED_TO_JS, result);
+        return result;
+      } else {
+        const result: OAuth2Result = {};
+        this.assignResponses(result, accessTokenResponse.access_token, urlParams, accessTokenResponse);
+        if (webOptions.logsEnabled) this.doLog(this.MSG_RETURNED_TO_JS, result);
+        return result;
+      }
+    }
+
+    // Implicit flow
+    const accessToken = urlParams.access_token;
+    if (!accessToken) {
+      throw new Error('ERR_NO_ACCESS_TOKEN');
+    }
+
+    if (webOptions.resourceUrl) {
+      const resource = await this.fetchResourcePure(webOptions, accessToken);
+      const result: OAuth2Result = {};
+      this.assignResponses(result, accessToken, urlParams, null);
+      Object.assign(result, resource);
+      if (webOptions.logsEnabled) this.doLog(this.MSG_RETURNED_TO_JS, result);
+      return result;
+    } else {
+      const result: OAuth2Result = {};
+      this.assignResponses(result, accessToken, urlParams, null);
+      if (webOptions.logsEnabled) this.doLog(this.MSG_RETURNED_TO_JS, result);
+      return result;
+    }
   }
 
   async redirectFlowCodeListener(options: ImplicitFlowRedirectOptions): Promise<any> {
@@ -51,8 +157,7 @@ export class GenericOAuth2Web extends WebPlugin implements GenericOAuth2Plugin {
   syncAuthenticate(options: OAuth2AuthenticateOptions): Promise<any> {
     const windowOptions = WebUtils.buildWindowOptions(options);
 
-    // we open the window first to avoid popups being blocked because of
-    // the asynchronous buildWebOptions call
+    // open placeholder window first to avoid popup blockers
     this.windowHandle =
       options.windowHandle || window.open('', windowOptions.windowTarget, windowOptions.windowOptions);
 
@@ -60,92 +165,94 @@ export class GenericOAuth2Web extends WebPlugin implements GenericOAuth2Plugin {
       this.webOptions = webOptions;
       return new Promise<any>((resolve, reject) => {
         // validate
-        if (!this.webOptions.appId || this.webOptions.appId.length == 0) {
+        if (!this.webOptions.appId || this.webOptions.appId.length === 0) {
           reject(new Error('ERR_PARAM_NO_APP_ID'));
-        } else if (!this.webOptions.authorizationBaseUrl || this.webOptions.authorizationBaseUrl.length == 0) {
+          return;
+        } else if (!this.webOptions.authorizationBaseUrl || this.webOptions.authorizationBaseUrl.length === 0) {
           reject(new Error('ERR_PARAM_NO_AUTHORIZATION_BASE_URL'));
-        } else if (!this.webOptions.redirectUrl || this.webOptions.redirectUrl.length == 0) {
+          return;
+        } else if (!this.webOptions.redirectUrl || this.webOptions.redirectUrl.length === 0) {
           reject(new Error('ERR_PARAM_NO_REDIRECT_URL'));
-        } else if (!this.webOptions.responseType || this.webOptions.responseType.length == 0) {
+          return;
+        } else if (!this.webOptions.responseType || this.webOptions.responseType.length === 0) {
           reject(new Error('ERR_PARAM_NO_RESPONSE_TYPE'));
-        } else {
-          // init internal control params
-          let loopCount = this.loopCount;
-          this.windowClosedByPlugin = false;
-          // open window
-          const authorizationUrl = WebUtils.getAuthorizationUrl(this.webOptions);
-          if (this.webOptions.logsEnabled) {
-            this.doLog('Authorization url: ' + authorizationUrl);
-          }
-          if (this.windowHandle) {
-            this.windowHandle.location.href = authorizationUrl;
-          }
-          // wait for redirect and resolve the
-          this.intervalId = window.setInterval(() => {
-            if (loopCount-- < 0) {
-              this.closeWindow();
-            } else if (this.windowHandle?.closed && !this.windowClosedByPlugin) {
-              console.log('window closed by user', this.windowHandle, this.windowClosedByPlugin);
-              window.clearInterval(this.intervalId);
-              reject(new Error('USER_CANCELLED'));
-            } else {
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-              let href: string = undefined!;
-              try {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                href = this.windowHandle!.location.href!;
-              } catch (ignore) {
-                // ignore DOMException: Blocked a frame with origin "http://localhost:4200" from accessing a cross-origin frame.
-              }
-
-              if (href != null && href.indexOf(this.webOptions.redirectUrl) >= 0) {
-                if (this.webOptions.logsEnabled) {
-                  this.doLog('Url from Provider: ' + href);
-                }
-                const authorizationRedirectUrlParamObj = WebUtils.getUrlParams(href);
-                if (authorizationRedirectUrlParamObj) {
-                  if (this.webOptions.logsEnabled) {
-                    this.doLog('Authorization response:', authorizationRedirectUrlParamObj);
-                  }
-                  window.clearInterval(this.intervalId);
-                  // check state
-                  if (authorizationRedirectUrlParamObj.state === this.webOptions.state) {
-                    if (this.webOptions.accessTokenEndpoint) {
-                      const authorizationCode = authorizationRedirectUrlParamObj.code;
-                      if (authorizationCode) {
-                        this.getAccessToken(authorizationRedirectUrlParamObj, resolve, reject, authorizationCode);
-                      } else {
-                        reject(new Error('ERR_NO_AUTHORIZATION_CODE'));
-                      }
-                      this.closeWindow();
-                    } else {
-                      // if no accessTokenEndpoint exists request the resource
-                      this.requestResource(
-                        authorizationRedirectUrlParamObj.access_token,
-                        resolve,
-                        reject,
-                        authorizationRedirectUrlParamObj,
-                      );
-                    }
-                  } else {
-                    if (this.webOptions.logsEnabled) {
-                      this.doLog('State from web options: ' + this.webOptions.state);
-                      this.doLog('State returned from provider: ' + authorizationRedirectUrlParamObj.state);
-                    }
-                    reject(new Error('ERR_STATES_NOT_MATCH'));
-                    this.closeWindow();
-                  }
-                }
-                // this is no error no else clause required
-              }
-            }
-          }, this.intervalLength);
+          return;
         }
+
+        // init internal control params
+        let loopCount = this.loopCount;
+        this.windowClosedByPlugin = false;
+
+        // open window with the authorization URL
+        const authorizationUrl = WebUtils.getAuthorizationUrl(this.webOptions);
+        if (this.webOptions.logsEnabled) {
+          this.doLog('Authorization url: ' + authorizationUrl);
+        }
+        if (this.windowHandle) {
+          this.windowHandle.location.href = authorizationUrl;
+        }
+
+        // polling loop for redirect / closure (same-origin only)
+        this.intervalId = window.setInterval(() => {
+          if (loopCount-- < 0) {
+            this.closeWindow();
+          } else if (this.windowHandle?.closed && !this.windowClosedByPlugin) {
+            window.clearInterval(this.intervalId!);
+            reject(new Error('USER_CANCELLED'));
+          } else {
+            let href: string | undefined;
+            try {
+              href = this.windowHandle!.location.href!;
+            } catch (_ignore) {
+              // cross-origin; ignore DOMException
+            }
+
+            if (href != null && href.indexOf(this.webOptions.redirectUrl) >= 0) {
+              if (this.webOptions.logsEnabled) {
+                this.doLog('Url from Provider: ' + href);
+              }
+              const authorizationRedirectUrlParamObj = WebUtils.getUrlParams(href);
+              if (authorizationRedirectUrlParamObj) {
+                if (this.webOptions.logsEnabled) {
+                  this.doLog('Authorization response:', authorizationRedirectUrlParamObj);
+                }
+                window.clearInterval(this.intervalId!);
+
+                // state check
+                if (authorizationRedirectUrlParamObj.state === this.webOptions.state) {
+                  if (this.webOptions.accessTokenEndpoint) {
+                    const authorizationCode = authorizationRedirectUrlParamObj.code;
+                    if (authorizationCode) {
+                      this.getAccessToken(authorizationRedirectUrlParamObj, resolve, reject, authorizationCode);
+                    } else {
+                      reject(new Error('ERR_NO_AUTHORIZATION_CODE'));
+                    }
+                    this.closeWindow();
+                  } else {
+                    // implicit flow: request resource or resolve immediately
+                    this.requestResource(
+                      authorizationRedirectUrlParamObj.access_token,
+                      resolve,
+                      reject,
+                      authorizationRedirectUrlParamObj,
+                    );
+                  }
+                } else {
+                  if (this.webOptions.logsEnabled) {
+                    this.doLog('State from web options: ' + this.webOptions.state);
+                    this.doLog('State returned from provider: ' + authorizationRedirectUrlParamObj.state);
+                  }
+                  reject(new Error('ERR_STATES_NOT_MATCH'));
+                  this.closeWindow();
+                }
+              }
+              // no else: continue polling if not our redirect
+            }
+          }
+        }, this.intervalLength);
       });
     });
   }
-
-  private readonly MSG_RETURNED_TO_JS = 'Returned to JS:';
 
   private getAccessToken(
     authorizationRedirectUrlParamObj: { [p: string]: string } | undefined,
@@ -168,13 +275,16 @@ export class GenericOAuth2Web extends WebPlugin implements GenericOAuth2Plugin {
           authorizationRedirectUrlParamObj,
           accessTokenResponse,
         );
+      } else {
+        this.doLog('ERR_GENERAL: Token endpoint HTTP ' + tokenRequest.status);
+        reject(new Error('ERR_GENERAL'));
       }
     };
     tokenRequest.onerror = () => {
       this.doLog('ERR_GENERAL: See client logs. It might be CORS. Status text: ' + tokenRequest.statusText);
       reject(new Error('ERR_GENERAL'));
     };
-    tokenRequest.open('POST', this.webOptions.accessTokenEndpoint, true);
+    tokenRequest.open('POST', this.webOptions.accessTokenEndpoint!, true);
     tokenRequest.setRequestHeader('accept', 'application/json');
     if (this.webOptions.sendCacheControlHeader) {
       tokenRequest.setRequestHeader('cache-control', 'no-cache');
@@ -185,7 +295,7 @@ export class GenericOAuth2Web extends WebPlugin implements GenericOAuth2Plugin {
 
   private requestResource(
     accessToken: string,
-    resolve: any,
+    resolve: (value: any) => void,
     reject: (reason?: any) => void,
     authorizationResponse: any,
     accessTokenResponse: any = null,
@@ -245,13 +355,33 @@ export class GenericOAuth2Web extends WebPlugin implements GenericOAuth2Plugin {
       }
     } else {
       // if no resource url exists just return the accessToken response
-      const resp = {};
+      const resp: Record<string, any> = {};
       this.assignResponses(resp, accessToken, authorizationResponse, accessTokenResponse);
       if (this.webOptions.logsEnabled) {
         this.doLog(this.MSG_RETURNED_TO_JS, resp);
       }
       resolve(resp);
       this.closeWindow();
+    }
+  }
+
+  private async fetchResourcePure(webOptions: WebOptions, accessToken: string): Promise<Record<string, any>> {
+    if (!webOptions.resourceUrl) return {};
+    const headers: Record<string, string> = { Authorization: `Bearer ${accessToken}` };
+    if (webOptions.additionalResourceHeaders) {
+      for (const k in webOptions.additionalResourceHeaders) {
+        headers[k] = webOptions.additionalResourceHeaders[k];
+      }
+    }
+    try {
+      const resp = await fetch(webOptions.resourceUrl, { headers });
+      if (!resp.ok) throw new Error(resp.statusText);
+      const json = await resp.json();
+      if (webOptions.logsEnabled) this.doLog('Resource response (pure):', json);
+      return json ?? {};
+    } catch (e: any) {
+      if (webOptions.logsEnabled) this.doLog('ERR_GENERAL (resource): ' + e?.message);
+      throw new Error(e?.message || 'ERR_GENERAL');
     }
   }
 
@@ -267,7 +397,6 @@ export class GenericOAuth2Web extends WebPlugin implements GenericOAuth2Plugin {
   }
 
   async logout(options: OAuth2AuthenticateOptions): Promise<boolean> {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     return new Promise<any>((resolve, _reject) => {
       localStorage.removeItem(WebUtils.getAppId(options));
       resolve(true);
@@ -275,7 +404,10 @@ export class GenericOAuth2Web extends WebPlugin implements GenericOAuth2Plugin {
   }
 
   private closeWindow() {
-    window.clearInterval(this.intervalId);
+    if (this.intervalId !== null) {
+      window.clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
     // #164 if the provider's login page is opened in the same tab or window it must not be closed
     // if (this.webOptions.windowTarget !== "_self") {
     //     this.windowHandle?.close();
@@ -285,6 +417,7 @@ export class GenericOAuth2Web extends WebPlugin implements GenericOAuth2Plugin {
   }
 
   private doLog(msg: string, obj: any = null) {
+    // eslint-disable-next-line no-console
     console.log('I/Capacitor/GenericOAuth2Plugin: ' + msg, obj);
   }
 }
