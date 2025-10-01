@@ -159,6 +159,14 @@ export interface WebOption extends OAuth2AuthenticateBaseOptions {
    * Whether to send the cache control header with the token request, unsupported by some providers. Defaults to true.
    */
   sendCacheControlHeader?: boolean;
+  /**
+   * Use alternative communication via local storage and polling instead of postMessage.
+   */
+  coop?: boolean;
+  /**
+   * Prefix for local storage keys to avoid conflicts when multiple apps use the coop option.
+   */
+  callbackStoragePrefix?: string;
 }
 
 export interface AndroidOptions extends OAuth2AuthenticateBaseOptions {

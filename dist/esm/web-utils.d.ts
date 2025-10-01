@@ -44,6 +44,8 @@ export declare class WebOptions {
     logsEnabled: boolean;
     windowOptions: string;
     windowTarget: string;
+    coop: boolean;
+    callbackStoragePrefix: string;
     pkceEnabled: boolean;
     pkceCodeVerifier: string;
     pkceCodeChallenge: string;

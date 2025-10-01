@@ -198,6 +198,20 @@
           "docs": "Whether to send the cache control header with the token request, unsupported by some providers. Defaults to true.",
           "complexTypes": [],
           "type": "boolean | undefined"
+        },
+        {
+          "name": "coop",
+          "tags": [],
+          "docs": "Use alternative communication via local storage and polling instead of postMessage.",
+          "complexTypes": [],
+          "type": "boolean | undefined"
+        },
+        {
+          "name": "callbackStoragePrefix",
+          "tags": [],
+          "docs": "Prefix for local storage keys to avoid conflicts when multiple apps use the coop option.",
+          "complexTypes": [],
+          "type": "string | undefined"
         }
       ]
     },

@@ -125,7 +125,7 @@ export class WebUtils {
         return randomStr;
     }
     static async buildWebOptions(configOptions) {
-        var _a;
+        var _a, _b, _c;
         const webOptions = new WebOptions();
         webOptions.appId = this.getAppId(configOptions);
         webOptions.authorizationBaseUrl = this.getOverwritableValue(configOptions, 'authorizationBaseUrl');
@@ -137,9 +137,11 @@ export class WebUtils {
         // controlling parameters
         webOptions.resourceUrl = this.getOverwritableValue(configOptions, 'resourceUrl');
         webOptions.accessTokenEndpoint = this.getOverwritableValue(configOptions, 'accessTokenEndpoint');
+        webOptions.coop = (_a = this.getOverwritableValue(configOptions, 'coop')) !== null && _a !== void 0 ? _a : false;
+        webOptions.callbackStoragePrefix = (_b = this.getOverwritableValue(configOptions, 'callbackStoragePrefix')) !== null && _b !== void 0 ? _b : "";
         webOptions.pkceEnabled = this.getOverwritableValue(configOptions, 'pkceEnabled');
         webOptions.sendCacheControlHeader =
-            (_a = this.getOverwritableValue(configOptions, 'sendCacheControlHeader')) !== null && _a !== void 0 ? _a : webOptions.sendCacheControlHeader;
+            (_c = this.getOverwritableValue(configOptions, 'sendCacheControlHeader')) !== null && _c !== void 0 ? _c : webOptions.sendCacheControlHeader;
         if (webOptions.pkceEnabled) {
             const pkceCode = this.getCodeVerifier();
             if (pkceCode) {
@@ -257,6 +259,8 @@ export class WebOptions {
     constructor() {
         this.sendCacheControlHeader = true;
         this.windowTarget = '_blank';
+        this.coop = false;
+        this.callbackStoragePrefix = "";
     }
 }
 //# sourceMappingURL=web-utils.js.map

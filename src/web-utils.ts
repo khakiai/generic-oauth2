@@ -183,6 +183,8 @@ export class WebUtils {
       configOptions,
       'accessTokenEndpoint',
     );
+    webOptions.coop = this.getOverwritableValue(configOptions, 'coop') ?? false;
+    webOptions.callbackStoragePrefix = this.getOverwritableValue(configOptions, 'callbackStoragePrefix') ?? "";
 
     webOptions.pkceEnabled = this.getOverwritableValue(
       configOptions,
@@ -343,6 +345,8 @@ export class WebOptions {
   logsEnabled: boolean;
   windowOptions: string;
   windowTarget = '_blank';
+  coop = false;
+  callbackStoragePrefix = "";
 
   pkceEnabled: boolean;
   pkceCodeVerifier: string;

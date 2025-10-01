@@ -7,6 +7,9 @@ export declare class GenericOAuth2Web extends WebPlugin implements GenericOAuth2
     private loopCount;
     private intervalLength;
     private windowClosedByPlugin;
+    private storageListenAbort?;
+    private storageKey;
+    private waitForCallbackViaStorage;
     /**
      * Get a new access token using an existing refresh token.
      */
@@ -22,3 +25,10 @@ export declare class GenericOAuth2Web extends WebPlugin implements GenericOAuth2
     private closeWindow;
     private doLog;
 }
+/**
+ * Put the final callback URL into localStorage under `${prefix}:${flowId}`.
+ * If `options` is omitted (e.g., used from the plain redirect page), we:
+ *  - derive `state` (and optional `app_state`) from `href`
+ *  - use default prefix 'oauth2'
+ */
+export declare function submitOAuthCallbackUrl(href?: string, options?: OAuth2AuthenticateOptions): Promise<void>;
